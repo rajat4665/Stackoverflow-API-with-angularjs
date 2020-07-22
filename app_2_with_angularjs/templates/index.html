@@ -1,0 +1,251 @@
+{% extends "base.html" %}
+{% load staticfiles %}
+{% block title %} Homepage {% endblock %}
+{% block content %}
+<script src="{% static 'js/dirPagination.js' %}"></script>
+<script>
+    var app = angular.module("myApp", ['angularUtils.directives.dirPagination']);
+    app.config(['$httpProvider', function ($httpProvider) {
+        $httpProvider.defaults.xsrfCookieName = 'csrftoken';
+        $httpProvider.defaults.xsrfHeaderName = 'X-CSRFToken';
+    }]);
+    app.config(function ($interpolateProvider) {
+        $interpolateProvider.startSymbol('{$');
+        $interpolateProvider.endSymbol('$}');
+    });
+    app.controller("appController", function (
+        $scope, $http, $filter) {
+        $scope.included_tags = [];
+        $scope.excluded_tags = [];
+        $scope.obtained_data = null;
+        $scope.current_div = false;
+        $scope.searchText='';
+        $scope.intitle = '';
+        $scope.sort = '';
+        $scope.order = '';
+        $scope.min = null;
+        $scope.max = null;
+        $scope.number_of_results = null;
+        $scope.current_in_tag = '';
+        $scope.current_ex_tag = '';
+        $scope.fromdate = null;
+        $scope.todate = null;
+        $scope.currdate = new Date();
+        $scope.yesterday = $scope.currdate - 1000 * 60 * 60 * 24;
+        $scope.yesterday = new Date($scope.yesterday);
+        $scope.refresh_page = function() {
+            window.location.reload()
+         }
+        $scope.removeADDTag = function(tag) {
+            var index = $scope.included_tags.indexOf(tag);
+            $scope.included_tags.splice(index, 1);
+        }
+        $scope.removeExTag = function(tag) {
+            var index = $scope.excluded_tags.indexOf(tag);
+            $scope.excluded_tags.splice(index, 1);
+        }
+        $scope.onAddTags = function(tag) {
+          $scope.included_tags.push(tag);
+          $scope.current_in_tag = '';
+        }
+        $scope.onAddExTags = function(tag) {
+          $scope.excluded_tags.push(tag);
+          $scope.current_ex_tag = '';
+        }
+
+        $scope.form_submit = function() {
+		        $http({
+			      method: 'POST',
+			      url: `{% url 'app_1:stack_api' %}`,
+			      data: {"data": {'tagged':$scope.included_tags,
+			                      'nottagged': $scope.excluded_tags,
+			                      'intitle': $scope.intitle,
+			                      'sort': $scope.sort,
+			                      'order': $scope.order,
+			                      'min': $scope.min,
+			                      'max': $scope.max,
+			                      'number_of_results': $scope.number_of_results,
+			                      'fromdate': $filter('date')(
+                                        $scope.fromdate, "dd/MM/yyyy"),
+			                      'todate': $filter('date')(
+                                        $scope.todate, "dd/MM/yyyy"),
+			      }
+			             }
+		      }).then(function success(response) {
+              if (response.status === 201) {
+                  alert('data fetched successfully !!!');
+                  console.log(response.data)
+                  $scope.obtained_data = response.data['data']['items'];
+                  console.log($scope.obtained_data);
+               }
+               else if (response.status === 200 ) {
+                  alert('data cached successfully !!');
+                  console.log(response.data)
+                  $scope.obtained_data = response.data['data']['items'];
+                }
+               else {
+                  alert("Sorry something went wrong");
+               }
+             }, function error(response) {
+                if (response.status === 429 ) {
+                  alert('Request limit exceeded , Try after sometime !!');
+                }
+              }
+             );
+	      }
+    });
+</script>
+
+<section ng-app="myApp" ng-controller="appController">
+  <div ng-show='!obtained_data'>
+    <h2 class="center_align jumbotron">Welcome to StackAPI</h2>
+    <form  class='mt-3'>
+      <label>Included Tags: </label>
+      <div
+           ng-repeat="tag in included_tags">
+          <button class="btn btn-success m-1"
+          style="display:inline">
+                              {$ tag $}
+                <button type="button" class="close" aria-label="Close"
+                  ng-click="removeADDTag(tag)">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+          </button>
+      </div>
+      <input type="text" ng-model='current_in_tag' value=""
+             placeholder="Enter tag name to add"
+      class="form-control mt-2">
+      <button class="btn btn-primary mt-1" ng-click="onAddTags(current_in_tag)">Add </button>
+      <br>
+      <label >Excluded Tags: </label>
+      <div
+           ng-repeat="tag in excluded_tags">
+          <button class="btn btn-success"
+          style="display:inline">
+                              {$ tag $}
+                <button type="button" class="close" aria-label="Close"
+                  ng-click="removeExTag(tag)">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+          </button>
+      </div>
+      <input type="text" ng-model='current_ex_tag' value=""
+             class="form-control"
+             placeholder="Enter tag name to add">
+      <button class="btn btn-primary" ng-click="onAddExTags(current_ex_tag)">Add </button>
+
+      <br>
+      <label >Title Contains </label>
+      <input type="text" name="number of results" class="form-control" value=""
+             ng-model="intitle"
+             placeholder="Enter a text that includes in title" >
+      <label for="">From Date</label>
+      <input class="form-control" type="date"
+             ng-model="fromdate"
+             ng-init="fromdate=yesterday">
+      <br>
+      <label for="">End Date</label>
+      <input class="form-control" type="date"
+             ng-model="todate"
+             ng-init="todate=currdate">
+      <label>Sort According to : <br/>
+          <select
+                  ng-options="x for x in ['activity', 'votes', 'creation', 'relevance']"
+                  class="form-control"
+                  ng-init="sort='votes'"
+                  ng-model="sort">
+          </select>
+      </label>
+      <label>Order According to : <br/>
+          <select
+                  ng-options="x for x in  ['ascending', 'descending']"
+                  class="form-control"
+                  ng-init="order='ascending'"
+                  ng-model="order">
+          </select>
+      </label>
+      <br>
+      <label for="">Min</label>
+      <input type="number" ng-model="min">
+      <label for="">Max</label>
+      <input type="number" ng-model="max">
+      <br>
+      <label for="">No of Results</label>
+      <input type="number" ng-model="number_of_results" placeholder="should be divided by 10">
+      <br>
+      <button class="btn btn-primary" type="submit"
+        ng-click="form_submit()"
+      >Submit</button>
+    </form>
+  </div>
+
+  <div ng-show="obtained_data">
+       <h3 class="jumbotron center_align"> Requested data </h3>
+        <button
+        class="btn btn-success m-1"
+        ng-click="refresh_page()"
+        >Homepage</button>
+        <div>
+          <input type="text" ng-model="searchText"
+                 placeholder="Search"
+                 class="form-control">
+          <table class="table table-hover">
+            <br>
+            <tr >
+                <th>Sr.no</th>
+
+                <th ng-click="order_key='title'; reverseSort=!reverseSort">Title </th>
+                <th>Link</th>
+                <th ng-click="order_key='is_answered'; reverseSort=!reverseSort">Answered</th>
+                <th ng-click="order_key='score'; reverseSort=!reverseSort">Score</th>
+                <th ng-click="order_key='owner_name'; reverseSort=!reverseSort">Owner Name</th>
+                <th>Owner Link</th>
+                <th> view more</th>
+
+            </tr>
+            <tr dir-paginate='data in obtained_data |itemsPerPage:10 |filter:searchText | orderBy: order_key:reverseSort'>
+                <td>{$ $index+1 $}</td>
+                <td>{$data['title']$}</td>
+                <td><a href="{$ data['link'] $}">Questing link</a></td>
+                <td>{$data['is_answered']$}</td>
+                <td>{$data['score']$}</td>
+                <td>{$data['owner']['owner_name']$}</td>
+                <td><a href="{$ data['owner']['link'] $}">Link</a></td>
+                <td>
+                  <button class="btn btn-primary"
+                  ng-click="current_div=true"
+                  ng-show="!current_div"
+                  >
+                    view more
+                  </button>
+                  <div ng-show="current_div">
+                    <img src="{$ data['owner']['profile_image'] $}" alt="no img found"
+                    height="200px"; width="200px"
+                    >
+                    <label for="">Display name :</label>{$data['owner']['display_name']$}
+                    <br>
+                    <label for="">Reputation :</label>{$data['owner']['reputation']$}
+                    <br>
+                    <label for="">Accept rate :</label>{$data['owner']['accept_rate']$}
+                    <br>
+                    <label for="">Answer Count :</label>{$data['owner']['answer_count']$}
+                    <br>
+                    <label for="">Tags</label>{$data['tags']$}
+                    <button class="btn btn-primary" ng-click="current_div=false">hide</button>
+                  </div>
+                </td>
+            </tr>
+      </table>
+      <br>
+    <div align="center">
+           <dir-pagination-controls
+                max-size="100"
+                direction-links="true"
+                boundary-links="true" >
+           </dir-pagination-controls>
+    </div>
+        </div>
+  </div>
+</section>
+
+{% endblock %}
