@@ -13,6 +13,20 @@ Read more about Angular js : <a href='https://www.w3schools.com/'  target="_blan
     <li> Cache managemnt using Redis </li>
     <li> Custom Throtling like 5 hits per minuter or 100 hits per day </li>
     <li> Integrate Angulrjs as frontend with Django template. </li>
+    <li> Angular 6 integration with CORS </li>
+</ul>
+
+<br>
+<h3> Special Guide for angular 6 setup </h3>
+<p>I have just upploaded angular 6 src not all app. So you have to setup angular 2+ </p>
+<ul>
+	<li>Install angular using cli </li>
+	<pre>npm install -g @angular/cli</pre>
+	<li>Create angular app by the following cli cmd </li>
+	<pre>ng new my-app</pre>
+	<li>Now copy src folder from this dir 'Stackoverflow-API-with-angularjs/angular_6_src/' replace it with src present in my-app dir</li>
+	<li>Now run the angular server</li>
+	<pre>ng serve --open</pre>
 </ul>
 <br>
 <h3>How to run this app:</h3>
